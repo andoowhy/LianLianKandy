@@ -12,7 +12,7 @@ var grid = {
     occupied: null
 };
 
-var tileFilename = '/img/swirl_color.png';
+var tileFilename = '/img/LianLianKan/swirl_color.png';
 
 var tileColours = [
     'blue',
@@ -64,7 +64,7 @@ function preload(){
     });
 
     // Load Background
-    game.load.image( 'bg', '/img/bg.png' );
+    game.load.image( 'bg', '/LianLianKan/img/bg.png' );
 }
 
 function create(){
