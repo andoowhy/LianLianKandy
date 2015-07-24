@@ -8,7 +8,7 @@ var grid = {
     width: 6,
     cellSize: 80,
     lineWidth: 5,
-    lineColor: 0x0000FF,
+    lineColor: 0xFFFFcc,
     occupied: null
 };
 
@@ -39,16 +39,22 @@ var game = new Phaser.Game(
     gameOpts.parent,
     {
         preload: preload,
-        create: create
+        create: create,
+        update: update
     }
 );
 
 game.lastTileSelected = null;
 game.score = 0;
-game.scoreText = null;
+
 game.tilesLeft = grid.width * grid.height;
+
+game.countdownTimer = null;
+
+game.scoreText = null;
 game.youWonText = null;
 game.youLostText = null;
+game.countdownTimerText = null;
 
 function preload(){
     // Load tile images
@@ -56,6 +62,9 @@ function preload(){
         var filename = tileFilename.replace( /color/g, tile );
         game.load.image( tile, filename );
     });
+
+    // Load Background
+    game.load.image( 'bg', '/img/bg.png' );
 }
 
 function create(){
@@ -63,14 +72,24 @@ function create(){
     createGrid();
     createTiles();
     createUI();
+    createCountdownTimer();
+}
+
+function update(){
+    // Update Text
+    game.countdownTimerText.setText( ( game.countdownTimer.ms / 1000 ).toFixed( 2 ) );
+
+    // Update Countdown Timer Text color
+    if( game.countdownTimer.ms / 1000 >= 25 ){
+        game.countdownTimerText.fill = '#FF0000'; // Red
+    }
+    else if( game.countdownTimer.ms / 1000 >= 20 ){
+        game.countdownTimerText.fill = '#FFFF00'; // Yellow
+    }
 }
 
 function createBackground(){
-    var bg = game.add.graphics( 0, 0 );
-    bg.beginFill( 0xFF0000, 1 );
-    bg.drawRect( 0, 0, gameOpts.canvasWidth, gameOpts.canvasHeight );
-    bg.inputEnabled = true;
-    bg.events.onInputDown.add( onClickedBackground, this );
+    var bg = game.add.tileSprite( 0, 0, gameOpts.canvasWidth, gameOpts.canvasHeight, 'bg' );
 }
 
 function createGrid(){
@@ -147,7 +166,6 @@ function createGrid(){
     })();
 
 }
-
 
 function createTiles(){
     var tiles = [];
@@ -421,20 +439,50 @@ function checkThreeLinePath( p1, p2 ){
 }
 
 function createUI(){
+    // Score
     var scoreTextStyle = {
-            font: '50px Arial',
-            fill: '#D',
-            align: 'center'
+        font: '70px Arial',
+        fill: '#FFFFFF',
+        align: 'center',
+        stroke: '#000000',
+        strokeThickness: 6
     };
     game.scoreText = game.add.text( game.world.centerX, ( grid.height + 2 ) * grid.cellSize, 'Score: 0', scoreTextStyle );
     game.scoreText.anchor.set( 0.5, 0 );
+
+    // Countdown Timer
+    var countdownTimerTextStyle = {
+        font: '70px Arial',
+        fill: '#FFFFFF',
+        align: 'center',
+        stroke: '#000000',
+        strokeThickness: 6
+    };
+    game.countdownTimerText = game.add.text( game.world.centerX, ( grid.height + 3 ) * grid.cellSize, '0', countdownTimerTextStyle );
+    game.countdownTimerText.anchor.set( 0.5, 0 );
+}
+
+function createCountdownTimer(){
+    game.countdownTimer = game.time.create( false );
+    game.countdownTimer.add( 30 * 1000, lostGame, this );
+    game.countdownTimer.start();
 }
 
 function wonGame(){
+
+    game.countdownTimer.pause();
+
+    // You Won overlay
+    var youWinOverlay = game.add.graphics( 0, 0 );
+    youWinOverlay.beginFill( 0x87ceeb, 0.9 );
+    youWinOverlay.drawRect( 0, 0, gameOpts.canvasWidth, gameOpts.canvasHeight );
+
+    // You Won Text
     var youWonTextStyle = {
-            font: '50px Arial',
-            fill: '#D',
-            align: 'center'
+            font: '120px Arial',
+            align: 'center',
+            stroke: '#000000',
+            strokeThickness: 8
     };
     game.youWonText = game.add.text(
         ( ( grid.width + 2 ) / 2 ) * grid.cellSize,
@@ -443,8 +491,44 @@ function wonGame(){
         youWonTextStyle
     );
     game.youWonText.anchor.set( 0.5, 0.5 );
+
+    var gradient = game.youWonText.context.createLinearGradient( 0, 50, 0, game.youWonText.height - 50);
+    gradient.addColorStop(0, '#ffb7d5');
+    gradient.addColorStop(1, '#87ceeb');
+    game.youWonText.fill = gradient;
+
+    // New Score Text
+    var scoreTextStyle = {
+        font: '70px Arial',
+        fill: '#FFFFFF',
+        align: 'center',
+        stroke: '#000000',
+        strokeThickness: 6
+    };
+    game.scoreText = game.add.text( game.world.centerX, ( grid.height + 2 ) * grid.cellSize, 'Score: ' + game.score, scoreTextStyle );
+    game.scoreText.anchor.set( 0.5, 0 );
+
 }
 
 function lostGame(){
+    game.countdownTimer.pause();
 
+    // Game Over overlay
+    var youLostOverlay = game.add.graphics( 0, 0 );
+    youLostOverlay.beginFill( 0xD3D3D3, 0.9 );
+    youLostOverlay.drawRect( 0, 0, gameOpts.canvasWidth, gameOpts.canvasHeight );
+
+    // Game Over Text
+    var youLostTextStyle = {
+            font: '90px Arial',
+            fill: '#D',
+            align: 'center'
+    };
+    game.youLostText = game.add.text(
+        ( ( grid.width + 2 ) / 2 ) * grid.cellSize,
+        ( ( grid.height + 2 ) / 2 ) * grid.cellSize,
+        'Game Over!',
+        youLostTextStyle
+    );
+    game.youLostText.anchor.set( 0.5, 0.5 );
 }

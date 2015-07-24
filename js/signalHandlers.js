@@ -15,7 +15,7 @@ function onClickedTile( tile ) {
         if( game.lastTileSelected.color === tile.color ) {
             if ( removeTiles( game.lastTileSelected, tile ) ){
                 game.score += 100;
-                game.scoreText.text = 'Score: ' + game.score;
+                game.scoreText.setText( 'Score: ' + game.score );
 
                 game.tilesLeft -= 2;
                 if( game.tilesLeft <= 0 ){
@@ -32,7 +32,7 @@ function onClickedTile( tile ) {
 
     // Draw square around tile
     var rect = game.add.graphics( 0, 0 );
-    rect.lineStyle( 3, 0xFFFFFF, 1) ;
+    rect.lineStyle( 3, 0x000000, 3) ;
     rect.drawRect( 0, 0, grid.cellSize, grid.cellSize );
 
     // Attach it as a child object
