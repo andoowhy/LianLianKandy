@@ -26,7 +26,7 @@ var tileColours = [
 ];
 
 var gameOpts = {
-    canvasWidth: 800,
+    canvasWidth: ( grid.width + 2 ) * grid.cellSize,
     canvasHeight: 800,
     renderer: Phaser.AUTO,
     parent: ''
@@ -44,6 +44,11 @@ var game = new Phaser.Game(
 );
 
 game.lastTileSelected = null;
+game.score = 0;
+game.scoreText = null;
+game.tilesLeft = grid.width * grid.height;
+game.youWonText = null;
+game.youLostText = null;
 
 function preload(){
     // Load tile images
@@ -57,7 +62,7 @@ function create(){
     createBackground();
     createGrid();
     createTiles();
-    //createTilesTest();
+    createUI();
 }
 
 function createBackground(){
@@ -143,56 +148,6 @@ function createGrid(){
 
 }
 
-function createTilesTest(){
-
-    // Place Tiles
-    var tile = game.add.sprite( 0, 0, tileColours[ 0 ] );
-    tile.color = tileColours[ 0 ];
-    tile.gridX = 1;
-    tile.x = tile.gridX * grid.cellSize;
-    tile.gridY = 6;
-    tile.y = tile.gridY * grid.cellSize;
-    grid.occupied[ tile.gridX ][ tile.gridY ] = true;
-    tile.inputEnabled = true;
-    tile.events.onInputDown.add( onClickedTile, this );
-
-    tile = game.add.sprite( 0, 0, tileColours[ 0 ] );
-    tile.color = tileColours[ 0 ];
-    tile.gridX = 6;
-    tile.x = tile.gridX * grid.cellSize;
-    tile.gridY = 1;
-    tile.y = tile.gridY * grid.cellSize;
-    grid.occupied[ tile.gridX ][ tile.gridY ] = true;
-    tile.inputEnabled = true;
-    tile.events.onInputDown.add( onClickedTile, this );
-
-    (function(){
-        for( var i = 0; i < 6; i++ ){
-            tile = game.add.sprite(0, 0, tileColours[1]);
-            tile.color = tileColours[1];
-            tile.gridX = i;
-            tile.gridY = 1;
-            tile.x = tile.gridX * grid.cellSize;
-            tile.y = tile.gridY * grid.cellSize;
-            grid.occupied[tile.gridX][tile.gridY] = true;
-            tile.inputEnabled = true;
-            tile.events.onInputDown.add(onClickedTile, this);
-        }
-    })();
-    (function(){
-        for( var i = 0; i < 6; i++ ){
-            tile = game.add.sprite(0, 0, tileColours[1]);
-            tile.color = tileColours[1];
-            tile.gridX = i + 2;
-            tile.gridY = 6;
-            tile.x = tile.gridX * grid.cellSize;
-            tile.y = tile.gridY * grid.cellSize;
-            grid.occupied[tile.gridX][tile.gridY] = true;
-            tile.inputEnabled = true;
-            tile.events.onInputDown.add(onClickedTile, this);
-        }
-    })();
-}
 
 function createTiles(){
     var tiles = [];
@@ -224,6 +179,31 @@ function createTiles(){
     })();
 }
 
+function createPathGroup( linePoints ){
+    if( !linePoints || !linePoints.length || linePoints.length % 2 !== 0 ){
+        throw new Error( 'linePoints must have an even length' );
+    }
+
+    var pathGroup = game.add.group();
+    (function(){
+        for( var i = 0; i < linePoints.length; i += 2 ){
+            var startPoint = new Vec2( 0, 0 );
+            startPoint.x = ( linePoints[ i ].x + 0.5 ) * grid.cellSize;
+            startPoint.y = ( linePoints[ i ].y + 0.5 ) * grid.cellSize;
+            var relativeEndPoint = new Vec2( 0, 0 );
+            relativeEndPoint.x = ( linePoints[ i + 1 ].x - linePoints[ i ].x ) * grid.cellSize;
+            relativeEndPoint.y = ( linePoints[ i + 1 ].y - linePoints[ i ].y ) * grid.cellSize;
+
+            var path = game.add.graphics( startPoint.x, startPoint.y );
+            path.lineStyle( 10, 0x00FF00, 0.9 );
+            path.lineTo( relativeEndPoint.x, relativeEndPoint.y );
+            pathGroup.add( path );
+        }
+    })();
+
+    return pathGroup;
+}
+
 function deselectAllTiles(){
     game.world.callAll( 'deselect' );
     game.lastTileSelected = null;
@@ -248,7 +228,18 @@ function removeTiles( tile1, tile2 ){
     var linePoints = checkOneLinePath( p1, p2 );
     if( linePoints.length == 2 ){
         console.log( '1 Line Path!' );
+
+        // Create visual path between tiles
+        var pathGroup = createPathGroup( linePoints );
+
+        // Destroy tiles immediately
         destroyTiles( tile1, tile2 );
+
+        // Destroy visual path after timer ends
+        game.time.events.add( 500, function(){
+            pathGroup.destroy();
+        }, this);
+
         return true;
     }
 
@@ -256,7 +247,18 @@ function removeTiles( tile1, tile2 ){
     linePoints = checkTwoLinePath( p1, p2 );
     if( linePoints.length == 4 ){
         console.log( '2 Line Path!' );
+
+        // Create visual path between tiles
+        var pathGroup = createPathGroup( linePoints );
+
+        // Destroy tiles immediately
         destroyTiles( tile1, tile2 );
+
+        // Destroy visual path after timer ends
+        game.time.events.add( 500, function(){
+            pathGroup.destroy();
+        }, this);
+
         return true;
     }
 
@@ -264,8 +266,19 @@ function removeTiles( tile1, tile2 ){
     linePoints = checkThreeLinePath( p1, p2 );
     if( linePoints.length == 6 ){
         console.log( '3 Line Path!' );
-        console.log( linePoints );
+
+        // Create visual path between tiles
+        var pathGroup = createPathGroup( linePoints );
+
+        // Destroy tiles immediately
         destroyTiles( tile1, tile2 );
+
+        // Destroy visual path after timer ends
+        game.time.events.add( 500, function(){
+            pathGroup.destroy();
+        }, this);
+
+        return true;
         return true;
     }
 
@@ -314,19 +327,22 @@ function checkOneLinePath( p1, p2 ){
 
 function checkTwoLinePath( p1, p2 ){
     var linePoints = [];
-
     var p3 = new Vec2( p1.x, p2.y );
-    linePoints = linePoints.concat( checkOneLinePath( p1, p3 ) );
-    linePoints = linePoints.concat( checkOneLinePath( p3, p2 ) );
-
-    if( linePoints.length == 4 ){
-        return linePoints; // Early exit, if we can
+    if( grid.occupied[ p3.x ][ p3.y ] === false ){
+        linePoints = linePoints.concat( checkOneLinePath( p1, p3 ) );
+        linePoints = linePoints.concat( checkOneLinePath( p3, p2 ) );
+        if( linePoints.length == 4 ){
+            return linePoints;
+        }
     }
 
     linePoints = [];
     var p4 = new Vec2( p2.x, p1.y );
-    linePoints = linePoints.concat( checkOneLinePath( p1, p4 ) );
-    linePoints = linePoints.concat( checkOneLinePath( p4, p2 ) );
+    if( grid.occupied[ p4.x ][ p4.y ] === false ){
+        linePoints = linePoints.concat( checkOneLinePath( p1, p4 ) );
+        linePoints = linePoints.concat( checkOneLinePath( p4, p2 ) );
+    }
+
     return linePoints;
 }
 
@@ -336,8 +352,11 @@ function checkThreeLinePath( p1, p2 ){
 
     // From p1, move out...
     // Up
-    linePoints = [];
     for( firstLineEndPoint = new Vec2( p1.x, p1.y - 1 ); firstLineEndPoint.y >= 0; firstLineEndPoint.y-- ){
+        linePoints = [];
+        if( grid.occupied[ firstLineEndPoint.x ][ firstLineEndPoint.y ] === true ){
+            break;
+        }
         linePoints = linePoints.concat( checkOneLinePath( p1, firstLineEndPoint ) );
         if( linePoints.length == 2 ){
             linePoints = linePoints.concat( checkTwoLinePath( firstLineEndPoint, p2 ) );
@@ -349,8 +368,11 @@ function checkThreeLinePath( p1, p2 ){
     console.log( '3 line solution not found by going up from p1' );
 
     // Down
-    linePoints = [];
     for( firstLineEndPoint = new Vec2( p1.x, p1.y + 1 ); firstLineEndPoint.y <= grid.width + 2; firstLineEndPoint.y++ ){
+        linePoints = [];
+        if( grid.occupied[ firstLineEndPoint.x ][ firstLineEndPoint.y ] === true ){
+            break;
+        }
         linePoints = linePoints.concat( checkOneLinePath( p1, firstLineEndPoint ) );
         if( linePoints.length == 2 ){
             linePoints = linePoints.concat( checkTwoLinePath( firstLineEndPoint, p2 ) );
@@ -363,8 +385,11 @@ function checkThreeLinePath( p1, p2 ){
 
 
     // Left
-    linePoints = [];
     for( firstLineEndPoint = new Vec2( p1.x - 1 , p1.y ); firstLineEndPoint.x >= 0; firstLineEndPoint.x-- ){
+        linePoints = [];
+        if( grid.occupied[ firstLineEndPoint.x ][ firstLineEndPoint.y ] === true ){
+            break;
+        }
         linePoints = linePoints.concat( checkOneLinePath( p1, firstLineEndPoint ) );
         if( linePoints.length == 2 ){
             linePoints = linePoints.concat( checkTwoLinePath( firstLineEndPoint, p2 ) );
@@ -376,8 +401,11 @@ function checkThreeLinePath( p1, p2 ){
     console.log( '3 line solution not found by going left from p1' );
 
     // Right
-    linePoints = [];
     for( firstLineEndPoint = new Vec2( p1.x + 1 , p1.y ); firstLineEndPoint.x < grid.width + 2; firstLineEndPoint.x++ ){
+        linePoints = [];
+        if( grid.occupied[ firstLineEndPoint.x ][ firstLineEndPoint.y ] === true ){
+            break;
+        }
         linePoints = linePoints.concat( checkOneLinePath( p1, firstLineEndPoint ) );
         if( linePoints.length == 2 ){
             linePoints = linePoints.concat( checkTwoLinePath( firstLineEndPoint, p2 ) );
@@ -386,8 +414,37 @@ function checkThreeLinePath( p1, p2 ){
             }
         }
     }
-    console.log( '3 line solution not found by going left from p1' );
+    console.log( '3 line solution not found by going right from p1' );
 
 
     return linePoints;
+}
+
+function createUI(){
+    var scoreTextStyle = {
+            font: '50px Arial',
+            fill: '#D',
+            align: 'center'
+    };
+    game.scoreText = game.add.text( game.world.centerX, ( grid.height + 2 ) * grid.cellSize, 'Score: 0', scoreTextStyle );
+    game.scoreText.anchor.set( 0.5, 0 );
+}
+
+function wonGame(){
+    var youWonTextStyle = {
+            font: '50px Arial',
+            fill: '#D',
+            align: 'center'
+    };
+    game.youWonText = game.add.text(
+        ( ( grid.width + 2 ) / 2 ) * grid.cellSize,
+        ( ( grid.height + 2 ) / 2 ) * grid.cellSize,
+        'You Won!',
+        youWonTextStyle
+    );
+    game.youWonText.anchor.set( 0.5, 0.5 );
+}
+
+function lostGame(){
+
 }

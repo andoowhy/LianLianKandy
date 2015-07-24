@@ -14,6 +14,14 @@ function onClickedTile( tile ) {
         // Try to remove the two tiles if they're the same colour
         if( game.lastTileSelected.color === tile.color ) {
             if ( removeTiles( game.lastTileSelected, tile ) ){
+                game.score += 100;
+                game.scoreText.text = 'Score: ' + game.score;
+
+                game.tilesLeft -= 2;
+                if( game.tilesLeft <= 0 ){
+                    wonGame();
+                }
+
                 return;
             }
         }
