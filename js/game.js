@@ -236,10 +236,7 @@ function createPathGroup( linePoints ){
             pathGroup.add( circle );
         }
     })();
-
-
-
-
+    
     return pathGroup;
 }
 
