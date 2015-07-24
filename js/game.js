@@ -206,6 +206,8 @@ function createPathGroup( linePoints ){
     var pathWidth = 8;
     var pathGroup = game.add.group();
 
+    
+
     // Create path lines
     (function(){
         for( var i = 0; i < linePoints.length; i += 2 ){
@@ -236,7 +238,7 @@ function createPathGroup( linePoints ){
             pathGroup.add( circle );
         }
     })();
-    
+
     return pathGroup;
 }
 
