@@ -12,7 +12,7 @@ var grid = {
     occupied: null
 };
 
-var tileFilename = '/img/LianLianKan/swirl_color.png';
+var tileFilename = '/LianLianKandy/img/swirl_color.png';
 
 var tileColours = [
     'blue',
@@ -64,7 +64,7 @@ function preload(){
     });
 
     // Load Background
-    game.load.image( 'bg', '/LianLianKan/img/bg.png' );
+    game.load.image( 'bg', '/LianLianKandy/img/bg.png' );
 }
 
 function create(){
@@ -206,7 +206,7 @@ function createPathGroup( linePoints ){
     var pathWidth = 8;
     var pathGroup = game.add.group();
 
-    
+
 
     // Create path lines
     (function(){
