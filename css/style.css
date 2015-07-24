@@ -1,0 +1,21 @@
+body {
+    font-family: "Helvetica Neue", "Arial", serif;
+}
+
+div.title {
+    min-width: 100%;
+    text-align: center;
+}
+
+div.rules{
+    min-width: 100%;
+    text-align: center;
+}
+
+div#container {
+    min-width: 100%;
+}
+
+canvas {
+    margin: auto;
+}

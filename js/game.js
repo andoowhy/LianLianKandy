@@ -29,7 +29,7 @@ var gameOpts = {
     canvasWidth: ( grid.width + 2 ) * grid.cellSize,
     canvasHeight: 800,
     renderer: Phaser.AUTO,
-    parent: ''
+    parent: 'canvas-container'
 };
 
 var game = new Phaser.Game(
@@ -202,7 +202,11 @@ function createPathGroup( linePoints ){
         throw new Error( 'linePoints must have an even length' );
     }
 
+    var pathColour = 0x9aff92;
+    var pathWidth = 8;
     var pathGroup = game.add.group();
+
+    // Create path lines
     (function(){
         for( var i = 0; i < linePoints.length; i += 2 ){
             var startPoint = new Vec2( 0, 0 );
@@ -213,11 +217,28 @@ function createPathGroup( linePoints ){
             relativeEndPoint.y = ( linePoints[ i + 1 ].y - linePoints[ i ].y ) * grid.cellSize;
 
             var path = game.add.graphics( startPoint.x, startPoint.y );
-            path.lineStyle( 10, 0x00FF00, 0.9 );
+            path.lineStyle( pathWidth, pathColour, 0.9 );
             path.lineTo( relativeEndPoint.x, relativeEndPoint.y );
             pathGroup.add( path );
         }
     })();
+
+    // Create path circles at corners
+    (function(){
+        for( var i = 0; i < linePoints.length; i++ ){
+            var startPoint = new Vec2( 0, 0 );
+            startPoint.x = ( linePoints[ i ].x + 0.5 ) * grid.cellSize;
+            startPoint.y = ( linePoints[ i ].y + 0.5 ) * grid.cellSize;
+            // Draw arcs on path corners
+            var circle = game.add.graphics( startPoint.x, startPoint.y );
+            circle.beginFill( pathColour );
+            circle.arc( 0, 0, pathWidth * 1.5, 0, 2 * Math.PI);
+            pathGroup.add( circle );
+        }
+    })();
+
+
+
 
     return pathGroup;
 }
